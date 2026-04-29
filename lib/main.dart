@@ -75,7 +75,7 @@ class _SimulatorPageState extends State<SimulatorPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 900),
@@ -181,12 +181,12 @@ class _SimulatorPageState extends State<SimulatorPage> {
           Text('Your Inputs', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
           const SizedBox(height: 16),
           GridView.count(
-            crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
+            crossAxisCount: MediaQuery.of(context).size.width > 800 ? 4 : 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: MediaQuery.of(context).size.width > 600 ? 2.2 : 2.8,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: MediaQuery.of(context).size.width > 800 ? 2.5 : 3.2,
             children: [
               _inputField('Current Age', _ageCtrl, Icons.person),
               _inputField('Retirement Age', _retireAgeCtrl, Icons.elderly),
