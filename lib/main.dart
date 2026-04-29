@@ -86,6 +86,8 @@ class _SimulatorPageState extends State<SimulatorPage> {
                 const SizedBox(height: 24),
                 _buildInputSection(),
                 const SizedBox(height: 20),
+                _buildHistoricalReturns(),
+                const SizedBox(height: 20),
                 _buildRunButton(),
                 const SizedBox(height: 24),
                 if (_isRunning) _buildLoading(),
@@ -229,6 +231,189 @@ class _SimulatorPageState extends State<SimulatorPage> {
           ),
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
+    );
+  }
+
+  Widget _buildHistoricalReturns() {
+    final returns = MonteCarloEngine.historicalReturns;
+    final startYear = 1926;
+    final avgReturn = returns.reduce((a, b) => a + b) / returns.length;
+    final bestYear = returns.asMap().entries.reduce((a, b) => a.value > b.value ? a : b);
+    final worstYear = returns.asMap().entries.reduce((a, b) => a.value < b.value ? a : b);
+    final positiveYears = returns.where((r) => r > 0).length;
+    final maxAbsReturn = returns.map((r) => r.abs()).reduce(max);
+
+    // Calculate 10-year rolling averages
+    final rollingAvg = <double>[];
+    for (int i = 9; i < returns.length; i++) {
+      final slice = returns.sublist(i - 9, i + 1);
+      rollingAvg.add(slice.reduce((a, b) => a + b) / 10);
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161b22),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF30363d)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.show_chart, color: Color(0xFF58a6ff), size: 20),
+              const SizedBox(width: 8),
+              Text('S&P 500 Historical Returns (1926–2024)',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontSize: 16)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text('Annual total returns including dividends. This is the data powering the Monte Carlo simulation.',
+              style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+          const SizedBox(height: 16),
+
+          // Stats row
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0d1117),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    _statBox('Avg Return', '${avgReturn.toStringAsFixed(1)}%', const Color(0xFF58a6ff)),
+                    _statBox('Best Year', '${bestYear.value.toStringAsFixed(1)}% (${startYear + bestYear.key})', const Color(0xFF3fb950)),
+                    _statBox('Worst Year', '${worstYear.value.toStringAsFixed(1)}% (${startYear + worstYear.key})', const Color(0xFFf85149)),
+                    _statBox('Positive Years', '$positiveYears/${returns.length} (${(positiveYears / returns.length * 100).round()}%)', Colors.orange),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Bar chart
+          Text('Annual Returns', style: TextStyle(color: Colors.grey[400], fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 160,
+            child: LayoutBuilder(builder: (context, constraints) {
+              final barWidth = (constraints.maxWidth - returns.length) / returns.length;
+              return Stack(
+                children: [
+                  // Zero line
+                  Positioned(
+                    top: 160 / 2,
+                    left: 0,
+                    right: 0,
+                    child: Container(height: 1, color: Colors.grey[700]),
+                  ),
+                  // Bars
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: returns.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final val = entry.value;
+                      final isPositive = val >= 0;
+                      final color = isPositive ? const Color(0xFF3fb950) : const Color(0xFFf85149);
+                      final barHeight = (val.abs() / maxAbsReturn) * 70;
+                      return GestureDetector(
+                        child: Container(
+                          width: barWidth.clamp(2.0, 8.0),
+                          height: barHeight.clamp(1.0, 70.0),
+                          margin: EdgeInsets.only(
+                            top: isPositive ? 80 - barHeight : 80,
+                            bottom: isPositive ? 80 : 80 - barHeight,
+                          ),
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(1),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              );
+            }),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('1926', style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+              Text('1950', style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+              Text('1975', style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+              Text('2000', style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+              Text('2024', style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Rolling 10-year average
+          Text('10-Year Rolling Average Return', style: TextStyle(color: Colors.grey[400], fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 100,
+            child: LayoutBuilder(builder: (context, constraints) {
+              final w = constraints.maxWidth / (rollingAvg.length - 1);
+              final minR = rollingAvg.reduce(min);
+              final maxR = rollingAvg.reduce(max);
+              final range = maxR - minR;
+              final points = <Offset>[];
+              for (int i = 0; i < rollingAvg.length; i++) {
+                final x = i * w;
+                final y = 90 - ((rollingAvg[i] - minR) / range) * 80;
+                points.add(Offset(x, y));
+              }
+              return CustomPaint(
+                painter: _LineChartPainter(points, const Color(0xFF58a6ff)),
+              );
+            }),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('1935', style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+              Text('1960', style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+              Text('1985', style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+              Text('2010', style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+              Text('2024', style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF58a6ff).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '📊 Key takeaway: While individual years vary wildly (-43% to +54%), the 10-year rolling average consistently stays positive. This is why long-term investing works — but the volatility is exactly what Monte Carlo captures.',
+              style: TextStyle(color: Colors.grey[400], fontSize: 12, height: 1.5),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statBox(String label, String value, Color color) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: TextStyle(color: Colors.grey[500], fontSize: 10)),
+            const SizedBox(height: 2),
+            Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -680,4 +865,44 @@ class MonteCarloEngine {
   static double _pickHistoricalReturn() {
     return historicalReturns[_random.nextInt(historicalReturns.length)];
   }
+}
+
+class _LineChartPainter extends CustomPainter {
+  final List<Offset> points;
+  final Color color;
+
+  _LineChartPainter(this.points, this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (points.length < 2) return;
+
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    final fillPaint = Paint()
+      ..color = color.withValues(alpha: 0.1)
+      ..style = PaintingStyle.fill;
+
+    final path = Path()..moveTo(points[0].dx, points[0].dy);
+    for (int i = 1; i < points.length; i++) {
+      path.lineTo(points[i].dx, points[i].dy);
+    }
+    canvas.drawPath(path, paint);
+
+    // Fill area under line
+    final fillPath = Path()..moveTo(points[0].dx, size.height);
+    fillPath.lineTo(points[0].dx, points[0].dy);
+    for (int i = 1; i < points.length; i++) {
+      fillPath.lineTo(points[i].dx, points[i].dy);
+    }
+    fillPath.lineTo(points.last.dx, size.height);
+    fillPath.close();
+    canvas.drawPath(fillPath, fillPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _LineChartPainter oldDelegate) => false;
 }
