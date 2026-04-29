@@ -180,9 +180,13 @@ class _SimulatorPageState extends State<SimulatorPage> {
         children: [
           Text('Your Inputs', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 16,
-            runSpacing: 12,
+          GridView.count(
+            crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: MediaQuery.of(context).size.width > 600 ? 2.2 : 2.8,
             children: [
               _inputField('Current Age', _ageCtrl, Icons.person),
               _inputField('Retirement Age', _retireAgeCtrl, Icons.elderly),
@@ -201,9 +205,7 @@ class _SimulatorPageState extends State<SimulatorPage> {
   }
 
   Widget _inputField(String label, TextEditingController ctrl, IconData icon) {
-    return SizedBox(
-      width: MediaQuery.of(context).size.width > 600 ? 180 : (MediaQuery.of(context).size.width - 88) / 2,
-      child: TextField(
+    return TextField(
         controller: ctrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         style: const TextStyle(color: Colors.white, fontSize: 14),
@@ -227,7 +229,6 @@ class _SimulatorPageState extends State<SimulatorPage> {
           ),
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
-      ),
     );
   }
 
