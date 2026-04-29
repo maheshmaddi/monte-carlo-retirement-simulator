@@ -202,7 +202,7 @@ class _SimulatorPageState extends State<SimulatorPage> {
 
   Widget _inputField(String label, TextEditingController ctrl, IconData icon) {
     return SizedBox(
-      width: 180,
+      width: MediaQuery.of(context).size.width > 600 ? 180 : (MediaQuery.of(context).size.width - 88) / 2,
       child: TextField(
         controller: ctrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
